@@ -1,47 +1,72 @@
-<script lang="ts">
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
+<script>
+  import { onMount } from 'svelte';
+  import { writable } from 'svelte/store';
+  import Block from "./lib/Block/Block.svelte";
+  import './app.css'
+
+
+  let ratesRef = {};
+  let fromCurrency = 'RUB';
+  let toCurrency = 'USD';
+  let fromPrice = 0;
+  let toPrice = 1;
+  const ratesStore = writable(ratesRef);
+
+  const loadRates = async () => {
+    try {
+      const res = await fetch("https://open.er-api.com/v6/latest");
+      const data = await res.json();
+      ratesRef = data.rates;
+      ratesStore.set(ratesRef);
+      onChangeToPrice(1);
+    } catch (error) {
+      console.error("Error fetching currencies:", error);
+    }
+  };
+
+  const onChangeFromPrice = (value) => {
+    const price = value / ratesRef[fromCurrency];
+    const result = price * ratesRef[toCurrency];
+    toPrice = result.toFixed(2);
+    fromPrice = value;
+  };
+
+  const onChangeToPrice = (value) => {
+    const result = (ratesRef[fromCurrency] / ratesRef[toCurrency]) * value;
+    toPrice = value;
+    fromPrice = result.toFixed(2);
+  };
+
+  const onChangeFromCurrency = (currency) => {
+    fromCurrency = currency;
+    onChangeFromPrice(fromPrice);
+  };
+
+  const onChangeToCurrency = (currency) => {
+    toCurrency = currency;
+    onChangeToPrice(toPrice);
+  };
+
+  onMount(loadRates);
 </script>
+<div class="App">
 
-<main>
-  <div>
-    <a href="https://vitejs.dev" target="_blank" rel="noreferrer">
-      <img src={viteLogo} class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-  <h1>Vite + Svelte</h1>
+        <Block
+                value={fromPrice}
+                onChangeValue={onChangeFromPrice}
+                currency={fromCurrency}
+                onChangeCurrency={onChangeFromCurrency}
+                ratesRef={ratesRef}
+        />
+        <Block
+                value={toPrice}
+                onChangeValue={onChangeToPrice}
+                currency={toCurrency}
+                onChangeCurrency={onChangeToCurrency}
+                ratesRef={ratesRef}
+        />
+    </div>
 
-  <div class="card">
-    <Counter />
-  </div>
 
-  <p>
-    Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank" rel="noreferrer">SvelteKit</a>, the official Svelte app framework powered by Vite!
-  </p>
 
-  <p class="read-the-docs">
-    Click on the Vite and Svelte logos to learn more
-  </p>
-</main>
 
-<style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
-  }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
-  }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
-  }
-  .read-the-docs {
-    color: #888;
-  }
-</style>
